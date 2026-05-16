@@ -75,6 +75,20 @@ const ANON_ID = 'anon_' + Math.random().toString(36).substr(2, 9) + '_' + Date.n
 
 // ─── Analytics Helpers ────────────────────────────────────
 
+/** Convert a variant value (object or JSON string) to a readable string.
+ *  { color: '#2d3436', size: 'M' }  =>  '#2d3436 / M'
+ *  '{"color":"#2d3436","size":"M"}' =>  '#2d3436 / M'
+ *  ''  |  null  |  {}               =>  ''
+ */
+function variantToString(variant) {
+  if (!variant) return '';
+  let obj = variant;
+  if (typeof variant === 'string') {
+    try { obj = JSON.parse(variant); } catch (_) { return variant; }
+  }
+  return Object.values(obj).filter(Boolean).join(' / ');
+}
+
 function trackPageView({ page_name, page_type, url = location.href, referrer = document.referrer }) {
   pushToDataLayer('page_viewed', { page_name, page_type, url, referrer });
   seg('page', page_name, { page_type, url, referrer, ...getIdentityContext() });
@@ -136,12 +150,13 @@ function trackPaymentInfoEntered({ payment_method, cart_id, total }) {
   seg('track', 'Payment Info Entered', { payment_method, cart_id, total, ...getIdentityContext() });
 }
 
-function trackOrderCompleted({ order_id, cart_id, total, revenue, shipping, tax, discount, coupon_code = null, currency = 'USD', products, payment_method, shipping_method }) {
+function trackOrderCompleted({ order_id, cart_id, total, revenue, shipping, tax, coupon = [], currency = 'USD', products, payment_method, shipping_method }) {
+  // coupon = [{ code, type, value, discount_amount }] | [] (empty array when no coupon applied)
   pushToDataLayer('order_completed', {
     page_type: 'confirmation',
-    ecommerce: { currency, value: total, order_id, cart_id, revenue, shipping, tax, discount, coupon_code, products, payment_method, shipping_method },
+    ecommerce: { currency, value: total, order_id, cart_id, revenue, shipping, tax, coupon, products, payment_method, shipping_method },
   });
-  seg('track', 'Order Completed', { order_id, cart_id, total, revenue, shipping, tax, discount, coupon_code, currency, products, payment_method, shipping_method, ...getIdentityContext() });
+  seg('track', 'Order Completed', { order_id, cart_id, total, revenue, shipping, tax, coupon, currency, products, payment_method, shipping_method, ...getIdentityContext() });
 }
 
 function trackSearchPerformed({ query, results_count }) {
@@ -430,7 +445,7 @@ function cartProducts() {
   return state.cart.map(item => ({
     product_id: item.product.id, sku: item.product.sku,
     name: item.product.name, price: item.product.price,
-    quantity: item.quantity, variant: item.variant,
+    quantity: item.quantity, variant: variantToString(item.variant),
   }));
 }
 
@@ -449,7 +464,7 @@ function addToCart(productId, variant = {}, quantity = 1) {
   trackAddToCart({
     cart_id: state.cartId, product_id: product.id, sku: product.sku,
     name: product.name, category: product.category, brand: product.brand,
-    variant: JSON.stringify(variant), price: product.price, quantity, currency: 'USD',
+    variant: variantToString(variant), price: product.price, quantity, currency: 'USD',
   });
 }
 
@@ -948,6 +963,15 @@ function placeOrder() {
   const grand       = taxBase + shipping + tax;
   state.orderId     = 'ORD-' + Math.random().toString(36).substr(2, 8).toUpperCase();
 
+  const couponPayload = state.appliedCoupon
+    ? [{
+        code:            state.appliedCoupon.code,
+        type:            state.appliedCoupon.type,
+        value:           state.appliedCoupon.value,
+        discount_amount: discountAmt,
+      }]
+    : [];
+
   trackOrderCompleted({
     order_id:        state.orderId,
     cart_id:         state.cartId,
@@ -955,8 +979,7 @@ function placeOrder() {
     revenue:         total,
     shipping,
     tax,
-    discount:        discountAmt,
-    coupon_code:     state.appliedCoupon?.code || null,
+    coupon:          couponPayload,
     currency:        'USD',
     products:        cartProducts(),
     payment_method:  state.checkoutData.paymentMethod,
@@ -1235,7 +1258,7 @@ function renderProduct(productId) {
 
   trackProductView({
     product_id: p.id, sku: p.sku, name: p.name, category: p.category,
-    brand: p.brand, variant: JSON.stringify(state.selectedVariant),
+    brand: p.brand, variant: variantToString(state.selectedVariant),
     price: p.price, currency: 'USD',
   });
 }

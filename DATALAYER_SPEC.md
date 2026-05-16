@@ -1,6 +1,6 @@
 # LUMA Retail — DataLayer Event Specification
 
-**Version:** 1.1  
+**Version:** 1.3  
 **Last Updated:** May 2025  
 **Applies to:** `main.js` analytics module  
 **Compatible with:** Google Tag Manager (GTM), GA4, Segment, Adobe Launch, any tag management system that reads `window.dataLayer`
@@ -250,7 +250,7 @@ Fired when the product detail page fully renders.
         "name":       "Organic Linen Blazer",
         "category":   "clothing",
         "brand":      "LUMA",
-        "variant":    "{\"color\":\"#2d3436\",\"size\":\"XS\"}",
+        "variant":    "#2d3436 / XS",
         "price":      189
       }
     ]
@@ -270,7 +270,7 @@ Fired when the product detail page fully renders.
 | `ecommerce.items[0].name` | string | Full product name |
 | `ecommerce.items[0].category` | string | Product category slug |
 | `ecommerce.items[0].brand` | string | Always `"LUMA"` |
-| `ecommerce.items[0].variant` | string | JSON-stringified `{color, size}` of the default selected variant |
+| `ecommerce.items[0].variant` | string | Human-readable variant string, e.g. `"#2d3436 / M"`. Built by joining non-empty variant values with ` / `. Empty string if no variant selected. |
 | `ecommerce.items[0].price` | number | Current selling price |
 
 ---
@@ -321,6 +321,7 @@ Fired when a product is added to the cart from any location (product card, produ
 |---|---|---|
 | `ecommerce.value` | number | `price × quantity` — total line value |
 | `ecommerce.items[0].quantity` | number | Quantity being added in this action |
+| `ecommerce.items[0].variant` | string | Same format as `product_viewed`: human-readable string, e.g. `"#2d3436 / M"` |
 | *(all other fields)* | — | Same as `product_viewed` |
 
 > **Note:** `ecommerce.value` reflects the value of items added in this single action, not the total cart value.
@@ -433,7 +434,7 @@ Fired when the user opens the mini-cart drawer or navigates to the full cart pag
 | `ecommerce.products[].name` | string | Product name |
 | `ecommerce.products[].price` | number | Unit price |
 | `ecommerce.products[].quantity` | number | Quantity in cart |
-| `ecommerce.products[].variant` | object | `{color, size}` variant object |
+| `ecommerce.products[].variant` | string | Human-readable variant string, e.g. `"#2d3436 / M"` or `"One Size"`. Empty string if no variant. |
 
 ---
 
@@ -635,7 +636,7 @@ Fired when the user successfully places an order (clicks "Place Order" on the Re
 
 **GTM Trigger:** Custom Event → `order_completed`
 
-#### DataLayer Push
+#### DataLayer Push — With coupon applied
 ```jsonc
 {
   "event":        "order_completed",
@@ -650,14 +651,23 @@ Fired when the user successfully places an order (clicks "Place Order" on the Re
 
   "ecommerce": {
     "currency":        "USD",
-    "value":           369.44,
+    "value":           296.30,
     "order_id":        "ORD-AB12CD34",
     "cart_id":         "cart_ab12cd34",
     "revenue":         318.00,
-    "shipping":        9.99,
-    "tax":             25.44,
-    "discount":        31.80,
-    "coupon_code":     "LUMA10",
+    "shipping":        0,
+    "tax":             22.90,
+
+    // coupon array — empty array [] when no coupon was applied
+    "coupon": [
+      {
+        "code":            "LUMA10",
+        "type":            "percent",
+        "value":           10,
+        "discount_amount": 31.80
+      }
+    ],
+
     "payment_method":  "card",
     "shipping_method": "standard",
     "products": [
@@ -667,7 +677,7 @@ Fired when the user successfully places an order (clicks "Place Order" on the Re
         "name":       "Organic Linen Blazer",
         "price":      189,
         "quantity":   1,
-        "variant":    { "color": "#2d3436", "size": "M" }
+        "variant":    "#2d3436 / M"
       },
       {
         "product_id": "p007",
@@ -675,7 +685,36 @@ Fired when the user successfully places an order (clicks "Place Order" on the Re
         "name":       "Hand-Thrown Ceramic Mug",
         "price":      49,
         "quantity":   1,
-        "variant":    { "color": "#fdfd96", "size": "320ml" }
+        "variant":    "#fdfd96 / 320ml"
+      }
+    ]
+  }
+}
+```
+
+#### DataLayer Push — No coupon applied
+```jsonc
+{
+  "event":    "order_completed",
+  "ecommerce": {
+    "currency":        "USD",
+    "value":           62.91,
+    "order_id":        "ORD-XY99ZZ11",
+    "cart_id":         "cart_ab12cd34",
+    "revenue":         49.00,
+    "shipping":        9.99,
+    "tax":             3.92,
+    "coupon":          [],
+    "payment_method":  "paypal",
+    "shipping_method": "standard",
+    "products": [
+      {
+        "product_id": "p007",
+        "sku":        "HOM-001",
+        "name":       "Hand-Thrown Ceramic Mug",
+        "price":      49,
+        "quantity":   1,
+        "variant":    "320ml"
       }
     ]
   }
@@ -690,15 +729,19 @@ Fired when the user successfully places an order (clicks "Place Order" on the Re
 | `ecommerce.order_id` | string | Unique order identifier, e.g. `"ORD-AB12CD34"` |
 | `ecommerce.cart_id` | string | Cart identifier (links order back to cart events) |
 | `ecommerce.currency` | string | Always `"USD"` |
-| `ecommerce.value` | number | Grand total paid (revenue + shipping + tax − discount) |
-| `ecommerce.revenue` | number | Product subtotal (before tax and shipping) |
-| `ecommerce.shipping` | number | Shipping cost. `0` if free, `9.99` (standard) or `19.99` (express) |
-| `ecommerce.tax` | number | Tax amount (8% of revenue) |
-| `ecommerce.discount` | number | Coupon discount amount in dollars. `0` if no coupon applied. |
-| `ecommerce.coupon_code` | string \| null | The applied promo code string, e.g. `"LUMA10"`. `null` if none. |
-| `ecommerce.payment_method` | string | `"card"`, `"paypal"`, `"apple"` |
+| `ecommerce.value` | number | Grand total paid: `(revenue − coupon.discount_amount) + shipping + tax` |
+| `ecommerce.revenue` | number | Product subtotal before any discounts, tax, or shipping |
+| `ecommerce.shipping` | number | Shipping cost. `0` if free or `FREESHIP` coupon; `9.99` (standard); `19.99` (express) |
+| `ecommerce.tax` | number | Tax at 8% of `(revenue − coupon.discount_amount)` |
+| `ecommerce.coupon` | array | Array containing one coupon object when a coupon was applied; empty array `[]` when none. Max one element (store supports one coupon at a time). |
+| `ecommerce.coupon[0].code` | string | Promo code string, e.g. `"LUMA10"` |
+| `ecommerce.coupon[0].type` | string | `"percent"`, `"fixed"`, or `"freeship"` |
+| `ecommerce.coupon[0].value` | number | Raw discount value: percentage for `percent`, dollar amount for `fixed`, `0` for `freeship` |
+| `ecommerce.coupon[0].discount_amount` | number | Actual dollar saving applied to this order (respects `maxDiscount` cap; `0` for `freeship`) |
+| `ecommerce.payment_method` | string | `"card"`, `"paypal"`, or `"apple"` |
 | `ecommerce.shipping_method` | string | `"standard"` or `"express"` |
-| `ecommerce.products` | array | All purchased items (same schema as `cart_viewed.products`) |
+| `ecommerce.products` | array | All purchased items. `variant` is a human-readable string (see below) |
+| `ecommerce.products[].variant` | string | Human-readable variant string, e.g. `"#2d3436 / M"` or `"320ml"`. Empty string if no variant. |
 
 #### Value Calculation
 
@@ -1208,6 +1251,7 @@ All events are mirrored to Twilio Segment. The table below shows the exact Segme
 | `array` | JSON array | `[{...}, {...}]` |
 | `object` | JSON object | `{"color": "#2d3436", "size": "M"}` |
 | ISO 8601 | `YYYY-MM-DDTHH:mm:ss.sssZ` | `"2025-05-12T10:00:00.000Z"` |
+| variant string | Values joined with ` / `, falsy values skipped | `"#2d3436 / M"`, `"One Size"`, `""` |
 
 ---
 
