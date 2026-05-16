@@ -136,12 +136,12 @@ function trackPaymentInfoEntered({ payment_method, cart_id, total }) {
   seg('track', 'Payment Info Entered', { payment_method, cart_id, total, ...getIdentityContext() });
 }
 
-function trackOrderCompleted({ order_id, cart_id, total, revenue, shipping, tax, discount, currency = 'USD', products, payment_method, shipping_method }) {
+function trackOrderCompleted({ order_id, cart_id, total, revenue, shipping, tax, discount, coupon_code = null, currency = 'USD', products, payment_method, shipping_method }) {
   pushToDataLayer('order_completed', {
     page_type: 'confirmation',
-    ecommerce: { currency, value: total, order_id, cart_id, revenue, shipping, tax, discount, products, payment_method, shipping_method },
+    ecommerce: { currency, value: total, order_id, cart_id, revenue, shipping, tax, discount, coupon_code, products, payment_method, shipping_method },
   });
-  seg('track', 'Order Completed', { order_id, cart_id, total, revenue, shipping, tax, discount, currency, products, payment_method, shipping_method, ...getIdentityContext() });
+  seg('track', 'Order Completed', { order_id, cart_id, total, revenue, shipping, tax, discount, coupon_code, currency, products, payment_method, shipping_method, ...getIdentityContext() });
 }
 
 function trackSearchPerformed({ query, results_count }) {
