@@ -152,7 +152,6 @@ const USERS = [
     // ── Session ────────────────────────────────────────────
     date_of_first_session: '2022-09-03T10:30:00Z',
   },
-  ,
   {
     customerId:  'CUST-IBM-001',
     firstName:   'Riya',
@@ -312,84 +311,6 @@ const PRODUCTS = [
     isNew: false, isFeatured: false,
   },
 ];
-
-// ─── PROMO CODES ──────────────────────────────────────────
-//
-// type:
-//   "percent"  — discounts by a % of subtotal
-//   "fixed"    — deducts a flat dollar amount
-//   "freeship" — zeroes out shipping cost
-//
-// minOrder   — minimum cart subtotal required to use the code
-// maxDiscount — caps the discount (percent codes only); null = no cap
-// expiresAt  — "YYYY-MM-DD" or null (never expires)
-// description — shown to the user in the UI
-//
-const PROMO_CODES = {
-  'LUMA10': {
-    code:        'LUMA10',
-    type:        'percent',
-    value:       10,
-    minOrder:    0,
-    maxDiscount: null,
-    expiresAt:   null,
-    description: '10% off your entire order',
-  },
-  'SAVE20': {
-    code:        'SAVE20',
-    type:        'percent',
-    value:       20,
-    minOrder:    100,
-    maxDiscount: 50,
-    expiresAt:   null,
-    description: '20% off orders over $100 (max $50 discount)',
-  },
-  'WELCOME15': {
-    code:        'WELCOME15',
-    type:        'percent',
-    value:       15,
-    minOrder:    50,
-    maxDiscount: null,
-    expiresAt:   null,
-    description: '15% off for new customers on orders over $50',
-  },
-  'FLAT25': {
-    code:        'FLAT25',
-    type:        'fixed',
-    value:       25,
-    minOrder:    75,
-    maxDiscount: null,
-    expiresAt:   null,
-    description: '$25 off orders over $75',
-  },
-  'FREESHIP': {
-    code:        'FREESHIP',
-    type:        'freeship',
-    value:       0,
-    minOrder:    0,
-    maxDiscount: null,
-    expiresAt:   null,
-    description: 'Free shipping on any order',
-  },
-  'SUMMER40': {
-    code:        'SUMMER40',
-    type:        'percent',
-    value:       40,
-    minOrder:    200,
-    maxDiscount: 80,
-    expiresAt:   '2025-08-31',
-    description: '40% off orders over $200 (max $80) — Summer sale',
-  },
-  'GOLD20': {
-    code:        'GOLD20',
-    type:        'percent',
-    value:       20,
-    minOrder:    0,
-    maxDiscount: null,
-    expiresAt:   null,
-    description: '20% off for Gold loyalty members',
-  },
-};
 
 // ─── CATEGORIES ───────────────────────────────────────────
 const CATEGORIES = [

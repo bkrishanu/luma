@@ -198,21 +198,6 @@ function buildUserTraits(u) {
   };
 }
 
-function trackCouponApplied({ code, type, value, discount_amount, cart_id, cart_total }) {
-  pushToDataLayer('coupon_applied', { code, type, value, discount_amount, cart_id, cart_total });
-  seg('track', 'Coupon Applied', { code, type, value, discount_amount, cart_id, cart_total, ...getIdentityContext() });
-}
-
-function trackCouponDenied({ code, reason, cart_id, cart_total }) {
-  pushToDataLayer('coupon_denied', { code, reason, cart_id, cart_total });
-  seg('track', 'Coupon Denied', { code, reason, cart_id, cart_total, ...getIdentityContext() });
-}
-
-function trackCouponRemoved({ code, cart_id }) {
-  pushToDataLayer('coupon_removed', { code, cart_id });
-  seg('track', 'Coupon Removed', { code, cart_id, ...getIdentityContext() });
-}
-
 function identifyUser(userId, traits = {}) {
   pushToDataLayer('user_identified', { user_id: userId, traits });
   seg('identify', userId, { ...traits, anonymous_id: ANON_ID });
@@ -287,7 +272,6 @@ const state = {
   checkoutStep: 0,
   checkoutData: { shipping: {}, shippingMethod: 'standard', paymentMethod: 'card', email: '' },
   orderId: null,
-  appliedCoupon: null,          // { code, type, value, discountAmount, description } | null
 };
 
 /* ============================================================
@@ -539,34 +523,16 @@ function renderDrawer() {
     </div>
   `).join('');
 
-  const coupon        = state.appliedCoupon;
-  const discountAmt   = coupon ? coupon.discountAmount : 0;
-  const effectiveShip = getShipping(total, 'standard');
-  const grandTotal    = Math.max(0, total - discountAmt) + effectiveShip;
-
   footerEl.innerHTML = `
     <div class="coupon-row">
-      ${coupon
-        ? `<div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--accent-light);border:1.5px solid var(--accent);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px">
-            <span style="font-weight:700;color:var(--accent2)">✓</span>
-            <span style="flex:1;font-weight:600;color:var(--accent2)">${coupon.code}</span>
-            <span style="color:var(--text2);font-size:12px">${coupon.type === 'freeship' ? 'Free shipping' : '-$' + coupon.discountAmount.toFixed(2)}</span>
-            <button onclick="removeCoupon()" style="font-size:14px;color:var(--text3);line-height:1;padding:2px 4px;border-radius:4px;transition:background 0.15s" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'" title="Remove code">✕</button>
-          </div>`
-        : `<input class="coupon-input" placeholder="Promo code" id="coupon-input"/>
-           <button class="btn-coupon" onclick="applyCoupon('coupon-input')">Apply</button>`
-      }
+      <input class="coupon-input" placeholder="Promo code" id="coupon-input"/>
+      <button class="btn-coupon" onclick="applyCoupon()">Apply</button>
     </div>
     <div class="price-summary">
       <div class="summary-row"><span>Subtotal</span><span>$${total.toFixed(2)}</span></div>
-      ${coupon && coupon.type !== 'freeship'
-        ? `<div class="summary-row" style="color:var(--accent2)"><span>Discount (${coupon.code})</span><span>−$${discountAmt.toFixed(2)}</span></div>`
-        : ''}
-      <div class="summary-row">
-        <span>Shipping${coupon?.type === 'freeship' ? ` <span style="font-size:11px;color:var(--accent2);font-weight:700">(${coupon.code})</span>` : ''}</span>
-        <span class="${effectiveShip === 0 ? 'free' : ''}">${effectiveShip === 0 ? 'Free' : '$' + effectiveShip.toFixed(2)}</span>
-      </div>
-      <div class="summary-row total"><span>Total</span><span>$${grandTotal.toFixed(2)}</span></div>
+      <div class="summary-row"><span>Discount</span><span>—$0.00</span></div>
+      <div class="summary-row"><span>Shipping</span><span class="${shipping === 0 ? 'free' : ''}">${shipping === 0 ? 'Free' : '$' + shipping.toFixed(2)}</span></div>
+      <div class="summary-row total"><span>Total</span><span>$${(total + shipping).toFixed(2)}</span></div>
     </div>
     <button class="btn-checkout" onclick="closeCart();startCheckout()">Checkout →</button>
     <button class="btn-secondary" style="width:100%;margin-top:8px;text-align:center;justify-content:center" onclick="closeCart();navigate('cart')">View full cart</button>
@@ -628,41 +594,16 @@ function renderCartPage() {
     <div>
       <div class="order-summary-card">
         <div class="order-summary-title">Order Summary</div>
-        ${(()=>{
-          const coupon = state.appliedCoupon;
-          const discountAmt = coupon ? coupon.discountAmount : 0;
-          const effectiveShip = getShipping(total, 'standard');
-          const effectiveTax  = Math.max(0, total - discountAmt) * 0.08;
-          const effectiveTotal = Math.max(0, total - discountAmt) + effectiveShip + effectiveTax;
-          return \`
-          <div class="coupon-row" style="margin-bottom:16px">
-            \${coupon
-              ? \`<div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--accent-light);border:1.5px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px">
-                  <span style="font-weight:700;color:var(--accent2)">✓</span>
-                  <div style="flex:1">
-                    <div style="font-weight:700;color:var(--accent2)">\${coupon.code}</div>
-                    <div style="font-size:11px;color:var(--text2)">\${coupon.description}</div>
-                  </div>
-                  <span style="font-weight:700;color:var(--accent2)">\${coupon.type === 'freeship' ? 'Free shipping' : '-$' + coupon.discountAmount.toFixed(2)}</span>
-                  <button onclick="removeCoupon()" style="font-size:14px;color:var(--text3);padding:2px 6px;border-radius:4px;transition:background 0.15s" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'" title="Remove">✕</button>
-                </div>\`
-              : \`<input class="coupon-input" placeholder="Enter promo code" id="cart-page-coupon-input"/>
-                 <button class="btn-coupon" onclick="applyCoupon('cart-page-coupon-input')">Apply</button>\`
-            }
-          </div>
-          <div class="price-summary">
-            <div class="summary-row"><span>Subtotal</span><span>$\${total.toFixed(2)}</span></div>
-            \${coupon && coupon.type !== 'freeship'
-              ? \`<div class="summary-row" style="color:var(--accent2)"><span>Discount (\${coupon.code})</span><span>−$\${discountAmt.toFixed(2)}</span></div>\`
-              : ''}
-            <div class="summary-row">
-              <span>Shipping\${coupon?.type === 'freeship' ? \` <span style="font-size:11px;color:var(--accent2);font-weight:700">(\${coupon.code})</span>\` : ''}</span>
-              <span class="\${effectiveShip === 0 ? 'free' : ''}">\${effectiveShip === 0 ? 'Free' : '$' + effectiveShip.toFixed(2)}</span>
-            </div>
-            <div class="summary-row"><span>Tax (8%)</span><span>$\${effectiveTax.toFixed(2)}</span></div>
-            <div class="summary-row total"><span>Total</span><span>$\${effectiveTotal.toFixed(2)}</span></div>
-          </div>\`;
-        })()}
+        <div class="coupon-row">
+          <input class="coupon-input" placeholder="Promo code"/>
+          <button class="btn-coupon" onclick="applyCoupon()">Apply</button>
+        </div>
+        <div class="price-summary" style="margin-top:16px">
+          <div class="summary-row"><span>Subtotal</span><span>$${total.toFixed(2)}</span></div>
+          <div class="summary-row"><span>Shipping</span><span class="${shipping === 0 ? 'free' : ''}">${shipping === 0 ? 'Free' : '$' + shipping.toFixed(2)}</span></div>
+          <div class="summary-row"><span>Tax (8%)</span><span>$${tax.toFixed(2)}</span></div>
+          <div class="summary-row total"><span>Total</span><span>$${grandTotal.toFixed(2)}</span></div>
+        </div>
         <button class="btn-checkout" onclick="startCheckout()">Proceed to Checkout →</button>
         <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:12px" onclick="navigate('listing','all')">← Continue Shopping</button>
       </div>
@@ -681,12 +622,10 @@ function startCheckout() {
 
 function renderCheckout() {
   const el = document.getElementById('checkout-content');
-  const total          = cartTotal();
-  const discountAmt    = state.appliedCoupon ? state.appliedCoupon.discountAmount : 0;
-  const shipping       = getShipping(total, state.checkoutData.shippingMethod);
-  const taxBase        = Math.max(0, total - discountAmt);
-  const tax            = taxBase * 0.08;
-  const grand          = taxBase + shipping + tax;
+  const total = cartTotal();
+  const shipping = state.checkoutData.shippingMethod === 'express' ? 19.99 : (total >= 75 ? 0 : 9.99);
+  const tax = total * 0.08;
+  const grand = total + shipping + tax;
   const steps = ['Shipping', 'Payment', 'Review'];
 
   const stepsHTML = steps.map((s, i) => `
@@ -849,10 +788,7 @@ function renderCheckout() {
         `).join('')}
         <div class="price-summary" style="margin-top:16px">
           <div class="summary-row"><span>Subtotal</span><span>$${total.toFixed(2)}</span></div>
-          ${state.appliedCoupon && state.appliedCoupon.type !== 'freeship'
-            ? `<div class="summary-row" style="color:var(--accent2)"><span>Discount (${state.appliedCoupon.code})</span><span>−$${state.appliedCoupon.discountAmount.toFixed(2)}</span></div>`
-            : ''}
-          <div class="summary-row"><span>Shipping${state.appliedCoupon?.type === 'freeship' ? ` <span style="font-size:11px;color:var(--accent2);font-weight:700">(${state.appliedCoupon.code})</span>` : ''}</span><span class="${shipping === 0 ? 'free' : ''}">${shipping === 0 ? 'Free' : '$' + shipping.toFixed(2)}</span></div>
+          <div class="summary-row"><span>Shipping</span><span class="${shipping === 0 ? 'free' : ''}">${shipping === 0 ? 'Free' : '$' + shipping.toFixed(2)}</span></div>
           <div class="summary-row"><span>Tax</span><span>$${tax.toFixed(2)}</span></div>
           <div class="summary-row total"><span>Total</span><span>$${grand.toFixed(2)}</span></div>
         </div>
@@ -916,41 +852,30 @@ function submitPayment() {
 }
 
 function placeOrder() {
-  const total       = cartTotal();
-  const discountAmt = state.appliedCoupon ? state.appliedCoupon.discountAmount : 0;
-  const shipping    = getShipping(total, state.checkoutData.shippingMethod);
-  const taxBase     = Math.max(0, total - discountAmt);
-  const tax         = taxBase * 0.08;
-  const grand       = taxBase + shipping + tax;
-  state.orderId     = 'ORD-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+  const total = cartTotal();
+  const shipping = state.checkoutData.shippingMethod === 'express' ? 19.99 : (total >= 75 ? 0 : 9.99);
+  const tax = total * 0.08;
+  const grand = total + shipping + tax;
+  state.orderId = 'ORD-' + Math.random().toString(36).substr(2, 8).toUpperCase();
 
   trackOrderCompleted({
-    order_id:        state.orderId,
-    cart_id:         state.cartId,
-    total:           grand,
-    revenue:         total,
-    shipping,
-    tax,
-    discount:        discountAmt,
-    coupon_code:     state.appliedCoupon?.code || null,
-    currency:        'USD',
-    products:        cartProducts(),
-    payment_method:  state.checkoutData.paymentMethod,
+    order_id: state.orderId, cart_id: state.cartId,
+    total: grand, revenue: total, shipping, tax, discount: 0,
+    currency: 'USD', products: cartProducts(),
+    payment_method: state.checkoutData.paymentMethod,
     shipping_method: state.checkoutData.shippingMethod,
   });
 
-  const purchasedCart    = [...state.cart];
-  const appliedCoupon    = state.appliedCoupon;
-  state.cart             = [];
-  state.appliedCoupon    = null;
+  const purchasedCart = [...state.cart];
+  state.cart = [];
   updateCartUI();
-  navigate('confirmation', { orderId: state.orderId, items: purchasedCart, total: grand, tax, shipping, coupon: appliedCoupon });
+  navigate('confirmation', { orderId: state.orderId, items: purchasedCart, total: grand, tax, shipping });
 }
 
 /* ============================================================
    RENDER: CONFIRMATION
    ============================================================ */
-function renderConfirmation({ orderId, items, total, coupon }) {
+function renderConfirmation({ orderId, items, total }) {
   const el = document.getElementById('page-confirmation');
   el.innerHTML = `
     <div class="confirmation-icon">🎉</div>
@@ -968,11 +893,6 @@ function renderConfirmation({ orderId, items, total, coupon }) {
           <div class="conf-item-price">$${(item.product.price * item.quantity).toFixed(2)}</div>
         </div>
       `).join('')}
-      ${coupon ? `
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--accent2)">
-          <span>🏷️ Promo code <strong>${coupon.code}</strong></span>
-          <span>${coupon.type === 'freeship' ? 'Free shipping' : '−$' + coupon.discountAmount.toFixed(2)}</span>
-        </div>` : ''}
       <div class="confirmation-total"><span>Total paid</span><span>$${total.toFixed(2)}</span></div>
     </div>
     <button class="btn-primary" onclick="navigate('home')">← Continue Shopping</button>
@@ -1323,102 +1243,10 @@ function handlePromoBannerClick() {
 }
 
 /* ============================================================
-   COUPON — Validation, application, and removal
+   COUPON
    ============================================================ */
-
-/** Calculate discount amount for a promo code against a given subtotal */
-function calcDiscount(promo, subtotal) {
-  if (promo.type === 'percent') {
-    const raw = subtotal * (promo.value / 100);
-    return promo.maxDiscount ? Math.min(raw, promo.maxDiscount) : raw;
-  }
-  if (promo.type === 'fixed') {
-    return Math.min(promo.value, subtotal); // never discount more than the subtotal
-  }
-  if (promo.type === 'freeship') {
-    return 0; // shipping is zeroed separately; discount shown as $0 off subtotal
-  }
-  return 0;
-}
-
-/** Returns shipping cost, taking a freeship coupon into account */
-function getShipping(subtotal, method) {
-  if (state.appliedCoupon?.type === 'freeship') return 0;
-  if (method === 'express') return 19.99;
-  return subtotal >= 75 ? 0 : 9.99;
-}
-
-/** Try to apply a promo code entered by the user */
-function applyCoupon(inputId) {
-  // Accept either a specific input element id or fall back to known ids
-  const inputEl =
-    (inputId && document.getElementById(inputId)) ||
-    document.getElementById('coupon-input') ||
-    document.getElementById('cart-page-coupon-input');
-
-  const raw = (inputEl?.value || '').trim().toUpperCase();
-  if (!raw) { showToast('Please enter a promo code.'); return; }
-
-  // Already have a coupon applied
-  if (state.appliedCoupon) {
-    showToast(`Remove code "${state.appliedCoupon.code}" first before applying a new one.`);
-    return;
-  }
-
-  const promo = PROMO_CODES[raw];
-  const subtotal = cartTotal();
-
-  // ── Validation ──────────────────────────────────────────
-  if (!promo) {
-    trackCouponDenied({ code: raw, reason: 'invalid_code', cart_id: state.cartId, cart_total: subtotal });
-    showToast('Invalid promo code. Please try again.', 'error');
-    return;
-  }
-
-  if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) {
-    trackCouponDenied({ code: raw, reason: 'expired', cart_id: state.cartId, cart_total: subtotal });
-    showToast(`Code "${raw}" has expired.`, 'error');
-    return;
-  }
-
-  if (subtotal < promo.minOrder) {
-    trackCouponDenied({ code: raw, reason: 'minimum_not_met', cart_id: state.cartId, cart_total: subtotal });
-    showToast(`Minimum order of $${promo.minOrder.toFixed(2)} required for this code.`, 'error');
-    return;
-  }
-
-  // ── Apply ───────────────────────────────────────────────
-  const discountAmount = calcDiscount(promo, subtotal);
-  state.appliedCoupon = { ...promo, discountAmount };
-
-  trackCouponApplied({
-    code: promo.code,
-    type: promo.type,
-    value: promo.value,
-    discount_amount: discountAmount,
-    cart_id: state.cartId,
-    cart_total: subtotal,
-  });
-
-  const label = promo.type === 'freeship'
-    ? 'Free shipping applied! 🎉'
-    : `Code "${promo.code}" applied — you save $${discountAmount.toFixed(2)}! 🎉`;
-  showToast(label);
-
-  // Re-render whichever cart view is active
-  if (document.getElementById('cart-drawer').classList.contains('open')) renderDrawer();
-  if (state.currentPage === 'cart') renderCartPage();
-}
-
-/** Remove the currently applied coupon */
-function removeCoupon() {
-  if (!state.appliedCoupon) return;
-  const code = state.appliedCoupon.code;
-  trackCouponRemoved({ code, cart_id: state.cartId });
-  state.appliedCoupon = null;
-  showToast(`Code "${code}" removed.`);
-  if (document.getElementById('cart-drawer').classList.contains('open')) renderDrawer();
-  if (state.currentPage === 'cart') renderCartPage();
+function applyCoupon() {
+  showToast('Promo code applied! 🎉');
 }
 
 /* ============================================================

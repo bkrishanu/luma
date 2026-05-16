@@ -1,6 +1,6 @@
 # LUMA Retail — DataLayer Event Specification
 
-**Version:** 1.1  
+**Version:** 1.0  
 **Last Updated:** May 2025  
 **Applies to:** `main.js` analytics module  
 **Compatible with:** Google Tag Manager (GTM), GA4, Segment, Adobe Launch, any tag management system that reads `window.dataLayer`
@@ -30,9 +30,6 @@
    - [4.15 user_identified](#415-user_identified)
    - [4.16 user_logged_in](#416-user_logged_in)
    - [4.17 user_logged_out](#417-user_logged_out)
-   - [4.18 coupon_applied](#418-coupon_applied)
-   - [4.19 coupon_denied](#419-coupon_denied)
-   - [4.20 coupon_removed](#420-coupon_removed)
 5. [Segment Mapping](#5-segment-mapping)
 6. [Field Type Reference](#6-field-type-reference)
 7. [GTM / GA4 Integration Notes](#7-gtm--ga4-integration-notes)
@@ -656,8 +653,7 @@ Fired when the user successfully places an order (clicks "Place Order" on the Re
     "revenue":         318.00,
     "shipping":        9.99,
     "tax":             25.44,
-    "discount":        31.80,
-    "coupon_code":     "LUMA10",
+    "discount":        0,
     "payment_method":  "card",
     "shipping_method": "standard",
     "products": [
@@ -694,8 +690,7 @@ Fired when the user successfully places an order (clicks "Place Order" on the Re
 | `ecommerce.revenue` | number | Product subtotal (before tax and shipping) |
 | `ecommerce.shipping` | number | Shipping cost. `0` if free, `9.99` (standard) or `19.99` (express) |
 | `ecommerce.tax` | number | Tax amount (8% of revenue) |
-| `ecommerce.discount` | number | Coupon discount amount in dollars. `0` if no coupon applied. |
-| `ecommerce.coupon_code` | string \| null | The applied promo code string, e.g. `"LUMA10"`. `null` if none. |
+| `ecommerce.discount` | number | Discount amount applied. `0` if no coupon. |
 | `ecommerce.payment_method` | string | `"card"`, `"paypal"`, `"apple"` |
 | `ecommerce.shipping_method` | string | `"standard"` or `"express"` |
 | `ecommerce.products` | array | All purchased items (same schema as `cart_viewed.products`) |
@@ -1018,157 +1013,6 @@ Fired when the user clicks "Sign Out" from the account dropdown.
 
 ---
 
----
-
-### 4.18 `coupon_applied`
-
-Fired when the user successfully applies a valid promo code to their cart.
-
-**Trigger:** `applyCoupon()` — fires after all validation passes.
-
-**GTM Trigger:** Custom Event → `coupon_applied`
-
-#### DataLayer Push
-```jsonc
-{
-  "event":        "coupon_applied",
-  "event_time":   "2025-05-12T10:05:00.000Z",
-  "segment_ready": false,
-  "anonymous_id": "anon_k7x2m9abc_1715511825000",
-  "customer_id":  "CUST-001",
-  "email":        "alex.jordan@email.com",
-  "user_name":    "Alex Jordan",
-
-  "code":            "LUMA10",
-  "type":            "percent",
-  "value":           10,
-  "discount_amount": 31.80,
-  "cart_id":         "cart_ab12cd34",
-  "cart_total":      318.00
-}
-```
-
-#### Field Reference
-
-| Field | Type | Description |
-|---|---|---|
-| `code` | string | The exact promo code string entered, e.g. `"LUMA10"` |
-| `type` | string | Coupon type: `"percent"`, `"fixed"`, or `"freeship"` |
-| `value` | number | The raw discount value — percentage for `percent` type, dollar amount for `fixed`, `0` for `freeship` |
-| `discount_amount` | number | Actual dollar saving applied to this cart. For `freeship` this is `0` (shipping is zeroed separately). For `percent` with a cap, this is the capped value. |
-| `cart_id` | string | Cart identifier |
-| `cart_total` | number | Cart subtotal at the time the code was applied (pre-discount) |
-
-#### Coupon Type Behaviour
-
-| `type` | `value` meaning | `discount_amount` meaning |
-|---|---|---|
-| `"percent"` | Percentage, e.g. `10` = 10% off | `min(subtotal × value/100, maxDiscount)` |
-| `"fixed"` | Dollar amount, e.g. `25` = $25 off | `min(value, subtotal)` — never exceeds subtotal |
-| `"freeship"` | Always `0` | Always `0` — shipping cost is zeroed in totals |
-
----
-
-### 4.19 `coupon_denied`
-
-Fired when the user submits a promo code that fails validation for any reason.
-
-**Trigger:** `applyCoupon()` — fires when validation fails.
-
-**GTM Trigger:** Custom Event → `coupon_denied`
-
-#### DataLayer Push — Invalid Code
-```jsonc
-{
-  "event":        "coupon_denied",
-  "event_time":   "2025-05-12T10:05:30.000Z",
-  "segment_ready": false,
-  "anonymous_id": "anon_k7x2m9abc_1715511825000",
-  "customer_id":  "CUST-001",
-  "email":        "alex.jordan@email.com",
-  "user_name":    "Alex Jordan",
-
-  "code":       "BADCODE",
-  "reason":     "invalid_code",
-  "cart_id":    "cart_ab12cd34",
-  "cart_total": 318.00
-}
-```
-
-#### DataLayer Push — Expired Code
-```jsonc
-{
-  "event":    "coupon_denied",
-  "code":     "SUMMER40",
-  "reason":   "expired",
-  "cart_id":  "cart_ab12cd34",
-  "cart_total": 318.00
-}
-```
-
-#### DataLayer Push — Minimum Order Not Met
-```jsonc
-{
-  "event":    "coupon_denied",
-  "code":     "SAVE20",
-  "reason":   "minimum_not_met",
-  "cart_id":  "cart_ab12cd34",
-  "cart_total": 80.00
-}
-```
-
-#### Field Reference
-
-| Field | Type | Description |
-|---|---|---|
-| `code` | string | The code string the user submitted (uppercased) |
-| `reason` | string | Why the code was rejected — see values below |
-| `cart_id` | string | Cart identifier |
-| `cart_total` | number | Cart subtotal at time of attempt |
-
-#### Reason Values
-
-| `reason` | Condition |
-|---|---|
-| `"invalid_code"` | The code does not exist in `PROMO_CODES` |
-| `"expired"` | The code's `expiresAt` date is in the past |
-| `"minimum_not_met"` | The cart subtotal is below the code's `minOrder` threshold |
-
----
-
-### 4.20 `coupon_removed`
-
-Fired when the user clicks the ✕ button to remove an applied coupon from their cart.
-
-**Trigger:** `removeCoupon()` — fires on remove button click.
-
-**GTM Trigger:** Custom Event → `coupon_removed`
-
-#### DataLayer Push
-```jsonc
-{
-  "event":        "coupon_removed",
-  "event_time":   "2025-05-12T10:06:00.000Z",
-  "segment_ready": false,
-  "anonymous_id": "anon_k7x2m9abc_1715511825000",
-  "customer_id":  "CUST-001",
-  "email":        "alex.jordan@email.com",
-  "user_name":    "Alex Jordan",
-
-  "code":    "LUMA10",
-  "cart_id": "cart_ab12cd34"
-}
-```
-
-#### Field Reference
-
-| Field | Type | Description |
-|---|---|---|
-| `code` | string | The promo code that was removed |
-| `cart_id` | string | Cart identifier |
-
----
-
 ## 5. Segment Mapping
 
 All events are mirrored to Twilio Segment. The table below shows the exact Segment method and event name used.
@@ -1192,9 +1036,6 @@ All events are mirrored to Twilio Segment. The table below shows the exact Segme
 | `user_identified` | `analytics.identify()` | *(no event name — identify call)* |
 | `user_logged_in` | `analytics.track()` | `"User Logged In"` |
 | `user_logged_out` | `analytics.track()` | `"User Logged Out"` |
-| `coupon_applied` | `analytics.track()` | `"Coupon Applied"` |
-| `coupon_denied` | `analytics.track()` | `"Coupon Denied"` |
-| `coupon_removed` | `analytics.track()` | `"Coupon Removed"` |
 
 ---
 
@@ -1259,9 +1100,6 @@ Quick reference: which user action fires which events.
 | Types in search box (≥2 chars) | `search_performed` |
 | Promo element enters viewport | `promotion_viewed` |
 | Clicks promo banner | `promotion_clicked` |
-| Applies a valid promo code | `coupon_applied` |
-| Submits an invalid / expired / unqualified code | `coupon_denied` |
-| Removes an applied coupon | `coupon_removed` |
 | Logs in successfully | `user_identified` → `user_logged_in` |
 | Logs out | `user_logged_out` |
 | Guest enters email at checkout | `user_identified` |
