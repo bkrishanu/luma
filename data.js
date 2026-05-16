@@ -159,7 +159,7 @@ const USERS = [
     email:       'riya.roy1@ibm.com',
     phone:       '+919123691991',
     password:    'riya123',
-    address:     'GB 64 Sakuntala Park',
+    address:     'GB-64, Sukanta Park, Prafullakanan',
     city:        'Kolkata',
     zip:         '700101',
     country:     'India',
