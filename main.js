@@ -574,6 +574,64 @@ function renderDrawer() {
 }
 
 /* ============================================================
+   HELPER — Cart page order summary HTML (avoids nested template literals)
+   ============================================================ */
+function buildCartPageSummaryHTML(total) {
+  const coupon       = state.appliedCoupon;
+  const discountAmt  = coupon ? coupon.discountAmount : 0;
+  const effectiveShip  = getShipping(total, 'standard');
+  const effectiveTax   = Math.max(0, total - discountAmt) * 0.08;
+  const effectiveTotal = Math.max(0, total - discountAmt) + effectiveShip + effectiveTax;
+
+  let couponRowHTML;
+  if (coupon) {
+    const saving = coupon.type === 'freeship' ? 'Free shipping' : '-$' + coupon.discountAmount.toFixed(2);
+    couponRowHTML =
+      '<div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--accent-light);border:1.5px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px">' +
+        '<span style="font-weight:700;color:var(--accent2)">✓</span>' +
+        '<div style="flex:1">' +
+          '<div style="font-weight:700;color:var(--accent2)">' + coupon.code + '</div>' +
+          '<div style="font-size:11px;color:var(--text2)">' + coupon.description + '</div>' +
+        '</div>' +
+        '<span style="font-weight:700;color:var(--accent2)">' + saving + '</span>' +
+        '<button onclick="removeCoupon()" style="font-size:14px;color:var(--text3);padding:2px 6px;border-radius:4px;transition:background 0.15s" onmouseover="this.style.background=\'var(--border)\'" onmouseout="this.style.background=\'none\'" title="Remove">✕</button>' +
+      '</div>';
+  } else {
+    couponRowHTML =
+      '<input class="coupon-input" placeholder="Enter promo code" id="cart-page-coupon-input"/>' +
+      '<button class="btn-coupon" onclick="applyCoupon(\'cart-page-coupon-input\')">Apply</button>';
+  }
+
+  let discountLineHTML = '';
+  if (coupon && coupon.type !== 'freeship') {
+    discountLineHTML =
+      '<div class="summary-row" style="color:var(--accent2)">' +
+        '<span>Discount (' + coupon.code + ')</span>' +
+        '<span>−$' + discountAmt.toFixed(2) + '</span>' +
+      '</div>';
+  }
+
+  let shippingLabel = 'Shipping';
+  if (coupon && coupon.type === 'freeship') {
+    shippingLabel += ' <span style="font-size:11px;color:var(--accent2);font-weight:700">(' + coupon.code + ')</span>';
+  }
+  const shippingValue = effectiveShip === 0
+    ? '<span class="free">Free</span>'
+    : '<span>$' + effectiveShip.toFixed(2) + '</span>';
+
+  return (
+    '<div class="coupon-row" style="margin-bottom:16px">' + couponRowHTML + '</div>' +
+    '<div class="price-summary">' +
+      '<div class="summary-row"><span>Subtotal</span><span>$' + total.toFixed(2) + '</span></div>' +
+      discountLineHTML +
+      '<div class="summary-row"><span>' + shippingLabel + '</span>' + shippingValue + '</div>' +
+      '<div class="summary-row"><span>Tax (8%)</span><span>$' + effectiveTax.toFixed(2) + '</span></div>' +
+      '<div class="summary-row total"><span>Total</span><span>$' + effectiveTotal.toFixed(2) + '</span></div>' +
+    '</div>'
+  );
+}
+
+/* ============================================================
    RENDER: CART PAGE
    ============================================================ */
 function renderCartPage() {
@@ -628,41 +686,7 @@ function renderCartPage() {
     <div>
       <div class="order-summary-card">
         <div class="order-summary-title">Order Summary</div>
-        ${(()=>{
-          const coupon = state.appliedCoupon;
-          const discountAmt = coupon ? coupon.discountAmount : 0;
-          const effectiveShip = getShipping(total, 'standard');
-          const effectiveTax  = Math.max(0, total - discountAmt) * 0.08;
-          const effectiveTotal = Math.max(0, total - discountAmt) + effectiveShip + effectiveTax;
-          return \`
-          <div class="coupon-row" style="margin-bottom:16px">
-            \${coupon
-              ? \`<div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--accent-light);border:1.5px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px">
-                  <span style="font-weight:700;color:var(--accent2)">✓</span>
-                  <div style="flex:1">
-                    <div style="font-weight:700;color:var(--accent2)">\${coupon.code}</div>
-                    <div style="font-size:11px;color:var(--text2)">\${coupon.description}</div>
-                  </div>
-                  <span style="font-weight:700;color:var(--accent2)">\${coupon.type === 'freeship' ? 'Free shipping' : '-$' + coupon.discountAmount.toFixed(2)}</span>
-                  <button onclick="removeCoupon()" style="font-size:14px;color:var(--text3);padding:2px 6px;border-radius:4px;transition:background 0.15s" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'" title="Remove">✕</button>
-                </div>\`
-              : \`<input class="coupon-input" placeholder="Enter promo code" id="cart-page-coupon-input"/>
-                 <button class="btn-coupon" onclick="applyCoupon('cart-page-coupon-input')">Apply</button>\`
-            }
-          </div>
-          <div class="price-summary">
-            <div class="summary-row"><span>Subtotal</span><span>$\${total.toFixed(2)}</span></div>
-            \${coupon && coupon.type !== 'freeship'
-              ? \`<div class="summary-row" style="color:var(--accent2)"><span>Discount (\${coupon.code})</span><span>−$\${discountAmt.toFixed(2)}</span></div>\`
-              : ''}
-            <div class="summary-row">
-              <span>Shipping\${coupon?.type === 'freeship' ? \` <span style="font-size:11px;color:var(--accent2);font-weight:700">(\${coupon.code})</span>\` : ''}</span>
-              <span class="\${effectiveShip === 0 ? 'free' : ''}">\${effectiveShip === 0 ? 'Free' : '$' + effectiveShip.toFixed(2)}</span>
-            </div>
-            <div class="summary-row"><span>Tax (8%)</span><span>$\${effectiveTax.toFixed(2)}</span></div>
-            <div class="summary-row total"><span>Total</span><span>$\${effectiveTotal.toFixed(2)}</span></div>
-          </div>\`;
-        })()}
+        ${buildCartPageSummaryHTML(total)}
         <button class="btn-checkout" onclick="startCheckout()">Proceed to Checkout →</button>
         <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:12px" onclick="navigate('listing','all')">← Continue Shopping</button>
       </div>
