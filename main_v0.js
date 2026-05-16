@@ -159,62 +159,18 @@ function trackPromotionClicked({ promotion_id, promotion_name, creative, locatio
   seg('track', 'Promotion Clicked', { promotion_id, promotion_name, creative, location, ...getIdentityContext() });
 }
 
-/** Build the full user traits object (all fields except password) */
-function buildUserTraits(u) {
-  return {
-    // ── Core identity ────────────────────────────────────
-    customer_id:  u.customerId,
-    first_name:   u.firstName,
-    last_name:    u.lastName,
-    email:        u.email,
-    phone:        u.phone,
-
-    // ── Address ──────────────────────────────────────────
-    address:      u.address,
-    city:         u.city,
-    zip:          u.zip,
-    country:      u.country,
-
-    // ── Personal ─────────────────────────────────────────
-    dob:          u.dob,
-    gender:       u.gender,
-    language:     u.language,
-    time_zone:    u.time_zone,
-
-    // ── Location ─────────────────────────────────────────
-    current_location: u.current_location,
-
-    // ── Preferences ──────────────────────────────────────
-    email_subscribe: u.email_subscribe,
-    interests:       u.interests,
-
-    // ── Loyalty ──────────────────────────────────────────
-    loyalty_tier:         u.loyaltyTier,
-    loyalty_points:       u.loyaltyPoints,
-    loyalty_last_updated: u.loyaltyLastUpdated,
-
-    // ── Session ──────────────────────────────────────────
-    date_of_first_session: u.date_of_first_session,
-  };
-}
-
 function identifyUser(userId, traits = {}) {
   pushToDataLayer('user_identified', { user_id: userId, traits });
   seg('identify', userId, { ...traits, anonymous_id: ANON_ID });
 }
 
 function trackUserLoggedIn(user) {
-  const traits = buildUserTraits(user);
   pushToDataLayer('user_logged_in', {
-    // ── Identity envelope ─────────────────────────────────
     customer_id: user.customerId,
-    email:       user.email,
-    user_name:   `${user.firstName} ${user.lastName}`,
-
-    // ── Full user profile (all fields except password) ────
-    user: traits,
+    email: user.email,
+    user_name: `${user.firstName} ${user.lastName}`,
   });
-  seg('track', 'User Logged In', { customer_id: user.customerId, email: user.email, ...traits });
+  seg('track', 'User Logged In', { customer_id: user.customerId, email: user.email });
 }
 
 function trackUserLoggedOut(user) {
@@ -327,8 +283,14 @@ function attemptLogin() {
   renderHeaderAuth();
   showToast(`Welcome back, ${user.firstName}! 👋`);
 
-  // Analytics — identify with all non-password user fields
-  identifyUser(user.customerId, buildUserTraits(user));
+  // Analytics
+  identifyUser(user.customerId, {
+    first_name: user.firstName,
+    last_name: user.lastName,
+    email: user.email,
+    phone: user.phone,
+    customer_id: user.customerId,
+  });
   trackUserLoggedIn(user);
 }
 

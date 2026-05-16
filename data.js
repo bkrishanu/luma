@@ -6,100 +6,151 @@
 // ─── USERS ────────────────────────────────────────────────
 const USERS = [
   {
-    customerId: 'CUST-001',
-    firstName: 'Alex',
-    lastName: 'Jordan',
-    email: 'alex.jordan@email.com',
-    phone: '+1 (555) 123-4567',
-    password: 'alex123',
-    address: '123 Main Street',
-    city: 'New York',
-    zip: '10001',
-    country: 'United States',
+    // ── Core identity ──────────────────────────────────────
+    customerId:  'CUST-001',
+    firstName:   'Alex',
+    lastName:    'Jordan',
+    email:       'alex.jordan@email.com',
+    phone:       '+1 (555) 123-4567',
+    password:    'alex123',                         // never sent to analytics
+
+    // ── Address ────────────────────────────────────────────
+    address:     '123 Main Street',
+    city:        'New York',
+    zip:         '10001',
+    country:     'United States',
+
+    // ── Personal ───────────────────────────────────────────
+    dob:         '1988-03-15',                      // "YYYY-MM-DD"
+    gender:      'M',                               // M | F | O | N | P | null
+    language:    'en',                              // ISO 639-1
+    time_zone:   'America/New_York',
+
+    // ── Location ───────────────────────────────────────────
+    current_location: { longitude: -73.991443, latitude: 40.753824 },
+
+    // ── Preferences ────────────────────────────────────────
+    email_subscribe: 'opted_in',                    // opted_in | subscribed | unsubscribed
+    interests:       ['fashion', 'travel', 'art'],
+
+    // ── Loyalty ────────────────────────────────────────────
+    loyaltyTier:        'Gold',
+    loyaltyPoints:      4750,
+    loyaltyLastUpdated: '2025-04-10T09:30:00',     // yyyy-MM-ddTHH:mm:ss
+
+    // ── Session ────────────────────────────────────────────
+    date_of_first_session: '2023-06-01T14:22:00Z', // ISO 8601
   },
+
   {
-    customerId: 'CUST-002',
-    firstName: 'Priya',
-    lastName: 'Sharma',
-    email: 'priya.sharma@email.com',
-    phone: '+91 98765 43210',
-    password: 'priya123',
-    address: '456 Park Avenue',
-    city: 'San Francisco',
-    zip: '94102',
-    country: 'United States',
+    // ── Core identity ──────────────────────────────────────
+    customerId:  'CUST-002',
+    firstName:   'Priya',
+    lastName:    'Sharma',
+    email:       'priya.sharma@email.com',
+    phone:       '+91 98765 43210',
+    password:    'priya123',
+
+    // ── Address ────────────────────────────────────────────
+    address:     '456 Park Avenue',
+    city:        'San Francisco',
+    zip:         '94102',
+    country:     'United States',
+
+    // ── Personal ───────────────────────────────────────────
+    dob:         '1994-07-22',
+    gender:      'F',
+    language:    'en',
+    time_zone:   'America/Los_Angeles',
+
+    // ── Location ───────────────────────────────────────────
+    current_location: { longitude: -122.419416, latitude: 37.774929 },
+
+    // ── Preferences ────────────────────────────────────────
+    email_subscribe: 'subscribed',
+    interests:       ['yoga', 'sustainability', 'home-decor', 'cooking'],
+
+    // ── Loyalty ────────────────────────────────────────────
+    loyaltyTier:        'Silver',
+    loyaltyPoints:      1820,
+    loyaltyLastUpdated: '2025-03-28T16:45:00',
+
+    // ── Session ────────────────────────────────────────────
+    date_of_first_session: '2024-01-15T08:10:00Z',
   },
+
   {
-    customerId: 'CUST-003',
-    firstName: 'James',
-    lastName: 'Kimani',
-    email: 'james.kimani@email.com',
-    phone: '+44 7700 900123',
-    password: 'james123',
-    address: '78 Oxford Street',
-    city: 'London',
-    zip: 'W1D 1BS',
-    country: 'United Kingdom',
+    // ── Core identity ──────────────────────────────────────
+    customerId:  'CUST-003',
+    firstName:   'James',
+    lastName:    'Kimani',
+    email:       'james.kimani@email.com',
+    phone:       '+44 7700 900123',
+    password:    'james123',
+
+    // ── Address ────────────────────────────────────────────
+    address:     '78 Oxford Street',
+    city:        'London',
+    zip:         'W1D 1BS',
+    country:     'United Kingdom',
+
+    // ── Personal ───────────────────────────────────────────
+    dob:         '1990-11-05',
+    gender:      'M',
+    language:    'en',
+    time_zone:   'Europe/London',
+
+    // ── Location ───────────────────────────────────────────
+    current_location: { longitude: -0.127758, latitude: 51.507351 },
+
+    // ── Preferences ────────────────────────────────────────
+    email_subscribe: 'opted_in',
+    interests:       ['hiking', 'cycling', 'photography', 'technology'],
+
+    // ── Loyalty ────────────────────────────────────────────
+    loyaltyTier:        'Silver',
+    loyaltyPoints:      2310,
+    loyaltyLastUpdated: '2025-05-01T11:00:00',
+
+    // ── Session ────────────────────────────────────────────
+    date_of_first_session: '2023-11-20T19:55:00Z',
   },
+
   {
-    customerId: 'CUST-004',
-    firstName: 'Sofia',
-    lastName: 'Bianchi',
-    email: 'sofia.bianchi@email.com',
-    phone: '+39 333 1234567',
-    password: 'sofia123',
-    address: 'Via Roma 22',
-    city: 'Milan',
-    zip: '20121',
-    country: 'Italy',
-  },
-  {
-    customerId: 'CUST-IBM-001',
-    firstName: 'Riya',
-    lastName: 'Roy',
-    email: 'riya.roy1@ibm.com',
-    phone: '+919123691991',
-    password: 'riya123',
-    address: 'Via Roma 22',
-    city: 'Milan',
-    zip: '20121',
-    country: 'Italy',
-  },
-  {
-    customerId: 'CUST-IBM-002',
-    firstName: 'Poornima',
-    lastName: 'Ghongadi',
-    email: 'poornima.ghongadi@ibm.com',
-    phone: '+918105793980',
-    password: 'poornima123',
-    address: '78 Oxford Street',
-    city: 'London',
-    zip: 'W1D 1BS',
-    country: 'United Kingdom',
-  },
-  {
-    customerId: 'CUST-IBM-003',
-    firstName: 'Krishanu',
-    lastName: 'Banerjee',
-    email: 'krishanu.banerjee2@ibm.com',
-    phone: '+919836144463',
-    password: 'krish123',
-    address: '456 Park Avenue',
-    city: 'San Francisco',
-    zip: '94102',
-    country: 'United States',
-  },
-  {
-    customerId: 'CUST-IBM-004',
-    firstName: 'Deepak',
-    lastName: 'Paranjpe',
-    email: 'deepak_paranjpe@in.ibm.com',
-    phone: '+918805017922',
-    password: 'deepak123',
-    address: '123 Main Street',
-    city: 'New York',
-    zip: '10001',
-    country: 'United States',
+    // ── Core identity ──────────────────────────────────────
+    customerId:  'CUST-004',
+    firstName:   'Sofia',
+    lastName:    'Bianchi',
+    email:       'sofia.bianchi@email.com',
+    phone:       '+39 333 1234567',
+    password:    'sofia123',
+
+    // ── Address ────────────────────────────────────────────
+    address:     'Via Roma 22',
+    city:        'Milan',
+    zip:         '20121',
+    country:     'Italy',
+
+    // ── Personal ───────────────────────────────────────────
+    dob:         '1985-02-28',
+    gender:      'F',
+    language:    'it',
+    time_zone:   'Europe/Rome',
+
+    // ── Location ───────────────────────────────────────────
+    current_location: { longitude: 9.185924, latitude: 45.465422 },
+
+    // ── Preferences ────────────────────────────────────────
+    email_subscribe: 'unsubscribed',
+    interests:       ['fashion', 'fine-dining', 'art', 'travel', 'wellness'],
+
+    // ── Loyalty ────────────────────────────────────────────
+    loyaltyTier:        'Gold',
+    loyaltyPoints:      8900,
+    loyaltyLastUpdated: '2025-05-08T08:20:00',
+
+    // ── Session ────────────────────────────────────────────
+    date_of_first_session: '2022-09-03T10:30:00Z',
   },
 ];
 

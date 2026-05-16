@@ -839,26 +839,11 @@ Fired when a user is identified — either on login or when a guest enters their
 
   "user_id": "CUST-001",
   "traits": {
-    "customer_id":   "CUST-001",
-    "first_name":    "Alex",
-    "last_name":     "Jordan",
-    "email":         "alex.jordan@email.com",
-    "phone":         "+1 (555) 123-4567",
-    "address":       "123 Main Street",
-    "city":          "New York",
-    "zip":           "10001",
-    "country":       "United States",
-    "dob":           "1988-03-15",
-    "gender":        "M",
-    "language":      "en",
-    "time_zone":     "America/New_York",
-    "current_location":      { "longitude": -73.991443, "latitude": 40.753824 },
-    "email_subscribe":       "opted_in",
-    "interests":             ["fashion", "travel", "art"],
-    "loyalty_tier":          "Gold",
-    "loyalty_points":        4750,
-    "loyalty_last_updated":  "2025-04-10T09:30:00",
-    "date_of_first_session": "2023-06-01T14:22:00Z"
+    "first_name":   "Alex",
+    "last_name":    "Jordan",
+    "email":        "alex.jordan@email.com",
+    "phone":        "+1 (555) 123-4567",
+    "customer_id":  "CUST-001"
   }
 }
 ```
@@ -881,35 +866,21 @@ Fired when a user is identified — either on login or when a guest enters their
 
 #### Field Reference
 
-| Field | Type | Format / Allowed Values | Description |
-|---|---|---|---|
-| `user_id` | string | — | Customer ID (logged-in) or email address (guest) |
-| `traits.customer_id` | string | `"CUST-001"` | Unique customer identifier |
-| `traits.first_name` | string | — | First name |
-| `traits.last_name` | string | — | Last name |
-| `traits.email` | string | — | Email address |
-| `traits.phone` | string | — | Phone number including country code |
-| `traits.address` | string | — | Street address |
-| `traits.city` | string | — | City |
-| `traits.zip` | string | — | ZIP or postal code |
-| `traits.country` | string | — | Country name |
-| `traits.dob` | string | `"YYYY-MM-DD"` | Date of birth, e.g. `"1988-03-15"` |
-| `traits.gender` | string | `"M"` `"F"` `"O"` `"N"` `"P"` `null` | M=Male, F=Female, O=Other, N=Not applicable, P=Prefer not to say, null=Unknown |
-| `traits.language` | string | ISO 639-1, e.g. `"en"` `"it"` | User's preferred language |
-| `traits.time_zone` | string | IANA tz, e.g. `"America/New_York"` | User's local time zone |
-| `traits.current_location` | object | `{"longitude": float, "latitude": float}` | User's approximate geo coordinates |
-| `traits.email_subscribe` | string | `"opted_in"` `"subscribed"` `"unsubscribed"` | Email marketing consent status |
-| `traits.interests` | array | e.g. `["fashion","travel"]` | User interest tags |
-| `traits.loyalty_tier` | string | `"Gold"` `"Silver"` | Loyalty programme tier |
-| `traits.loyalty_points` | number | integer | Current loyalty point balance |
-| `traits.loyalty_last_updated` | string | `"yyyy-MM-ddTHH:mm:ss"` | Timestamp of last loyalty balance change |
-| `traits.date_of_first_session` | string | ISO 8601 | Timestamp of the user's very first session |
+| Field | Type | Description |
+|---|---|---|
+| `user_id` | string | Customer ID (logged-in) or email (guest) |
+| `traits` | object | User attribute object passed to `analytics.identify()` |
+| `traits.first_name` | string | First name |
+| `traits.last_name` | string | Last name |
+| `traits.email` | string | Email address |
+| `traits.phone` | string | Phone number (logged-in users only) |
+| `traits.customer_id` | string | CUST-xxx identifier (logged-in users only) |
 
 ---
 
 ### 4.16 `user_logged_in`
 
-Fired immediately after a successful login. Includes the complete user profile (all fields except `password`) as a nested `user` object, making it a self-contained event for downstream identity resolution without requiring a separate `user_identified` lookup.
+Fired immediately after a successful login.
 
 **Trigger:** `trackUserLoggedIn()` — called from `attemptLogin()`.
 
@@ -922,69 +893,17 @@ Fired immediately after a successful login. Includes the complete user profile (
   "event_time":   "2025-05-12T10:12:05.000Z",
   "segment_ready": false,
   "anonymous_id": "anon_k7x2m9abc_1715511825000",
-
-  // ── Top-level identity envelope ────────────────────────
   "customer_id":  "CUST-001",
   "email":        "alex.jordan@email.com",
-  "user_name":    "Alex Jordan",
-
-  // ── Full user profile (password excluded) ──────────────
-  "user": {
-    "customer_id":   "CUST-001",
-    "first_name":    "Alex",
-    "last_name":     "Jordan",
-    "email":         "alex.jordan@email.com",
-    "phone":         "+1 (555) 123-4567",
-    "address":       "123 Main Street",
-    "city":          "New York",
-    "zip":           "10001",
-    "country":       "United States",
-    "dob":           "1988-03-15",
-    "gender":        "M",
-    "language":      "en",
-    "time_zone":     "America/New_York",
-    "current_location":      { "longitude": -73.991443, "latitude": 40.753824 },
-    "email_subscribe":       "opted_in",
-    "interests":             ["fashion", "travel", "art"],
-    "loyalty_tier":          "Gold",
-    "loyalty_points":        4750,
-    "loyalty_last_updated":  "2025-04-10T09:30:00",
-    "date_of_first_session": "2023-06-01T14:22:00Z"
-  }
+  "user_name":    "Alex Jordan"
 }
 ```
 
-> **Note:** This event fires *after* `user_identified`. The top-level `customer_id`, `email`, and `user_name` fields are present in the envelope for quick access. The full profile is inside `user{}` for downstream tools that need complete attribute resolution.
+> **Note:** This event fires *after* `user_identified`. The identity context fields (`customer_id`, `email`, `user_name`) are already present in the top-level envelope because `state.currentUser` is set before firing.
 
 #### Field Reference
 
-| Field | Type | Format / Allowed Values | Description |
-|---|---|---|---|
-| `customer_id` | string | `"CUST-001"` | Unique customer identifier (top-level for quick GTM access) |
-| `email` | string | — | Email address (top-level) |
-| `user_name` | string | `"First Last"` | Full display name (top-level) |
-| `user.customer_id` | string | `"CUST-001"` | Unique customer identifier |
-| `user.first_name` | string | — | First name |
-| `user.last_name` | string | — | Last name |
-| `user.email` | string | — | Email address |
-| `user.phone` | string | — | Phone number including country code |
-| `user.address` | string | — | Street address |
-| `user.city` | string | — | City |
-| `user.zip` | string | — | ZIP or postal code |
-| `user.country` | string | — | Country name |
-| `user.dob` | string | `"YYYY-MM-DD"` | Date of birth |
-| `user.gender` | string | `"M"` `"F"` `"O"` `"N"` `"P"` `null` | Gender identifier |
-| `user.language` | string | ISO 639-1 | Preferred language code |
-| `user.time_zone` | string | IANA tz | Local time zone |
-| `user.current_location` | object | `{"longitude": float, "latitude": float}` | Geo coordinates |
-| `user.email_subscribe` | string | `"opted_in"` `"subscribed"` `"unsubscribed"` | Email consent status |
-| `user.interests` | array | strings | Interest tags |
-| `user.loyalty_tier` | string | `"Gold"` `"Silver"` | Loyalty tier |
-| `user.loyalty_points` | number | integer | Loyalty point balance |
-| `user.loyalty_last_updated` | string | `"yyyy-MM-ddTHH:mm:ss"` | Last loyalty update timestamp |
-| `user.date_of_first_session` | string | ISO 8601 | First-ever session timestamp |
-
-> ⚠️ **`password` is never included in any dataLayer event.** It exists only in the in-memory `USERS` data store for demo authentication.
+All top-level fields only — no event-specific payload. Identity is fully captured in the envelope fields.
 
 ---
 
