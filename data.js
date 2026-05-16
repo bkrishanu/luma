@@ -190,7 +190,7 @@ const USERS = [
     gender:      'M',
     language:    'fr',
     time_zone:   'Asia/Kolkata',
-    current_location: { longitude: -90.419416, latitude: 90.774929 },
+    current_location: { longitude: 86.952393, latitude: 23.673944 },
     email_subscribe: 'opted_in',
     interests:       ['coding', 'cooking', 'mythology', 'reading'],
     loyaltyTier:        'Platinum',
