@@ -167,7 +167,7 @@ const USERS = [
     gender:      'F',
     language:    'en',
     time_zone:   'Asia/Kolkata',
-    current_location: { longitude: -122.419416, latitude: 37.774929 },
+    current_location: { longitude: 88.363892, latitude: 22.572645 },
     email_subscribe: 'opted_in',
     interests:       ['yoga', 'dance', 'home-decor', 'travel'],
     loyaltyTier:        'Silver',
