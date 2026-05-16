@@ -152,7 +152,6 @@ const USERS = [
     // ── Session ────────────────────────────────────────────
     date_of_first_session: '2022-09-03T10:30:00Z',
   },
-  ,
   {
     customerId:  'CUST-IBM-001',
     firstName:   'Riya',
